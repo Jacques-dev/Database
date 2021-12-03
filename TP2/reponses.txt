@@ -1,0 +1,164 @@
+# TP2
+1
+```
+SELECT nom, prenom, date_naissance FROM eleves;
+```
+2
+```
+SELECT * FROM activites;
+```
+3
+```
+SELECT DISTINCT specialite FROM professeurs;
+```
+4
+```
+SELECT nom, prenom FROM eleves WHERE poids < 45 AND (annee = 1 OR annee = 2);
+```
+5
+```
+SELECT nom FROM eleves WHERE poids BETWEEN 60 AND 80;
+```
+6
+```
+SELECT nom FROM professeurs WHERE specialite = 'sql' OR specialite = 'poésie';
+```
+7
+```
+SELECT * FROM eleves WHERE nom LIKE 'L%';
+```
+8
+```
+SELECT nom FROM professeurs WHERE specialite IS NULL;
+```
+9
+```
+SELECT nom, prenom FROM eleves WHERE poids < 45 AND annee = 1;
+```
+10
+```
+SELECT nom, REPLACE(specialite, ' - ', '****') FROM professeurs;
+```
+11
+```
+SELECT nom,prenom FROM eleves NATURAL JOIN (SELECT num_eleve FROM activites_pratiquees WHERE niveau=2 AND nom='Surf');
+SELECT eleves.nom, eleves.prenom FROM eleves RIGHT JOIN activites_pratiquees ON eleves.num_eleve = activites_pratiquees.num_eleve WHERE niveau=2 AND activites_pratiquees.nom='Surf';
+SELECT eleves.nom, eleves.prenom FROM eleves JOIN activites_pratiquees ON eleves.num_eleve = activites_pratiquees.num_eleve WHERE niveau=2 AND activites_pratiquees.nom='Surf';
+```
+12
+```
+SELECT eleves.nom FROM eleves INNER JOIN ACTIVITES_PRATIQUEES ON eleves.num_eleve = ACTIVITES_PRATIQUEES.num_eleve where niveau =1 and ACTIVITES_PRATIQUEES.nom = 'Mini foot';
+```
+13
+```
+SELECT p1.nom, p2.nom FROM professeurs p1, professeurs p2 WHERE p1.num_prof != p2.num_prof AND p1.specialite = p2.specialite;
+```
+14
+```
+SELECT nom, specialite, salaire_actuel, (salaire_actuel-salaire_base) AS augmentation_mensuelle FROM professeurs WHERE specialite='sql';
+```
+15
+```
+SELECT nom FROM professeurs WERE Salaire_actuel > ((Salaire_base*25/100)+Salaire_base);
+```
+16
+```
+SELECT resultats.points * 5 FROM eleves NATURAL JOIN resultats WHERE eleves.nom = 'Tsuno';
+```
+17
+```
+SELECT AVG(poids) AS poids_moyen FROM eleves WHERE annee=1;
+```
+18
+```
+SELECT SUM(points) FROM resultats WHERE num_eleve = 3;
+```
+19
+```
+SELECT MIN(resultats.points), MAX(resultats.points) FROM eleves NATURAL JOIN resultats WHERE eleves.nom = 'Brisefer';
+```
+20
+```
+SELECT COUNT(*) FROM eleves WHERE annee=2;
+```
+21
+```
+SELECT AVG(salaire_actuel) - AVG(salaire_base) FROM professeurs;
+```
+22
+```
+SELECT der_prom FROM professeurs WHERE nom = 'Pucette' ORDER BY der_prom ASC LIMIT 1;
+```
+23
+```
+SELECT nom, date_entree, der_prom, TRUNC((der_prom - date_entree)/365) AS nombre_annees FROM professeurs;
+```
+24
+```
+SELECT CAST(AVG(EXTRACT(year FROM date_naissance))AS int) AS annee_moy FROM eleves;
+```
+25
+```
+SELECT nom, TRUNC((der_prom-date_entree)/150) AS datediff FROM professeurs WHERE TRUNC((der_prom-date_entree)/150) > 50;
+```
+26
+```
+SELECT nom,prenom FROM eleves WHERE (TRUNC((sysdate + 120 - date_naissance) / (365))) >= 24;
+```
+27
+```
+SELECT nom, prenom FROM eleves ORDER BY annee;
+```
+28
+```
+SELECT cours.nom, resultats.points * 5 FROM eleves NATURAL JOIN resultats JOIN cours ON resultats.num_cours = cours.num_cours WHERE eleves.nom = 'Tsuno' ORDER BY cours.nom, resultats.points DESC;
+```
+29
+```
+SELECT eleves.nom, moyenne FROM eleves NATURAL JOIN (SELECT resultats.num_eleve, AVG(resultats.points) AS moyenne FROM resultats GROUP BY resultats.num_eleve) WHERE eleves.annee=1;
+```
+30
+```
+SELECT nom, AVG(points) FROM eleves, resultats WHERE eleves.num_eleve = resultats.num_eleve AND annee = 1 GROUP BY nom HAVING SUM(points) <= 40;
+```
+31
+```
+SELECT eleves.nom, MAX(points) FROM eleves NATURAL JOIN resultats GROUP BY eleves.nom;
+```
+32
+```
+SELECT el.nom FROM eleves el JOIN activites_pratiquees ap ON el.num_eleve = ap.num_eleve JOIN activites ac ON ap.nom = ac.nom WHERE ac.equipe = 'Amc Indus';
+```
+33
+```
+SELECT nom, AVG(points) FROM eleves, resultats WHERE resultats.num_eleve = eleves.num_eleve AND annee = 1 GROUP BY nom HAVING AVG(points) > (SELECT AVG(points) FROM resultats WHERE num_eleve IN (SELECT num_eleve FROM eleves WHERE annee = 1));
+```
+34
+```
+SELECT nom, poids FROM eleves WHERE annee = 1 AND poids > ALL(SELECT poids FROM eleves WHERE annee = 2);
+```
+35
+```
+SELECT nom, poids FROM eleves WHERE annee = 1 AND poids > ANY(SELECT poids FROM eleves WHERE annee = 2);
+```
+36
+```
+SELECT nom, poids, annee FROM eleves e1 WHERE poids > (SELECT AVG(poids) FROM eleves e2 WHERE e2.annee = e1.annee);
+```
+37
+```
+SELECT nom FROM professeurs WHERE num_prof NOT IN(SELECT num_prof FROM charge WHERE num_cours = 1);
+```
+38
+```
+SELECT DISTINCT nom FROM (SELECT * FROM eleves JOIN activites_pratiquees ON eleves.num_eleve = activites_pratiquees.num_eleve WHERE eleves.annee = 1 AND activites_pratiquees.nom = 'Tennis') NATURAL JOIN (SELECT eleves.nom, moyenne FROM eleves NATURAL JOIN (SELECT resultats.num_eleve, AVG(resultats.points) AS moyenne FROM resultats GROUP BY resultats.num_eleve) WHERE eleves.annee=1 and moyenne > 12);
+```
+39
+```
+SELECT DISTINCT PROFESSEURS.NOM, PROFESSEURS.NUM_PROF FROM PROFESSEURS WHERE PROFESSEURS.NUM_PROF IN (SELECT distinct PROFESSEURS.NUM_PROF FROM PROFESSEURS INNER JOIN CHARGE ON (PROFESSEURS.NUM_PROF = CHARGE.NUM_PROF) WHERE CHARGE.NUM_COURS = 4 IN (SELECT DISTINCT PROFESSEURS.NUM_PROF FROM PROFESSEURS INNER JOIN CHARGE ON (PROFESSEURS.NUM_PROF = CHARGE.NUM_PROF) WHERE CHARGE.NUM_COURS = 5));
+```
+40
+```
+SELECT num_eleve, nom FROM eleves WHERE num_eleve = (SELECT num_eleve FROM activites_pratiquees GROUP BY num_eleve HAVING COUNT (num_eleve) = 4);
+```
+

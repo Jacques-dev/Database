@@ -1,0 +1,259 @@
+
+
+alter table resultats 
+      add constraint ck_resultats_points check (points between 0 and 20);
+
+
+ALTER TABLE ELEVES
+ADD (
+    SEXE    varchar2(1)
+);
+
+alter table  eleves
+      add constraint ck_sexe check ( sexe in('m', 'M', 'f', 'F', Null));
+
+
+
+alter table professeurs
+      add constraint ck_niveau_salaire check (salaire_base <= salaire_actuel);
+
+
+
+
+alter table professeurs
+      add constraint ck_dep_moy check(
+      salaire_actuel < 2* ( select  avg (salaire_actuel) as moy
+                from    professeurs
+                group by specialite;
+
+                
+create or replace trigger dep_moy_prof
+    before update of salaire_actuel on professeurs
+    
+    for each row
+    when ((new.salaire_actuel > old.salaire_actuel) 
+    and (old.specialite = new.specialite))
+    
+    declare
+        salaire_moy exception;
+        moysalaire integer;
+    
+    begin
+     select 2*avg(salaire_actuel) into moysalaire from professeurs where specialite = :new.specialite ;
+        if (:new.salaire_actuel > moysalaire ) then
+            raise salaire_moy;
+        end if;
+    exception
+    when salaire_moy then
+        raise_application_error (-20001, 'Le salaire est superieur au double de la moyenne!');
+    end;
+/
+  
+
+
+
+
+create or replace trigger maj_salaire_professeur
+    before update of salaire_actuel on professeurs
+
+    for each row
+    when (old.salaire_actuel >new.salaire_actuel)
+
+    declare
+        salaire_diminue exception;
+    
+    begin
+        raise salaire_diminue;
+    exception
+    when salaire_diminue then
+        raise_application_error (-20001, 'Le salaire ne peut diminuer !!!');
+    end;
+/
+
+
+
+
+drop table prof_specialite;
+
+create table prof_specialite
+(
+    specialite    varchar2(20),
+    nb_professeurs    number
+);
+
+
+CREATE OR REPLACE TRIGGER MAJ_NB_PROF
+    AFTER INSERT OR DELETE OR UPDATE OF SPECIALITE ON PROFESSEURS
+
+FOR EACH ROW 
+BEGIN 
+    IF    (inserting) THEN
+            UPDATE PROF_SPECIALITE SET NB_PROFESSEURS =     NB_PROFESSEURS + 1
+            WHERE  SPECIALITE  = :NEW.SPECIALITE;
+    ELSIF (deleting)  THEN
+        UPDATE PROF_SPECIALITE SET NB_PROFESSEURS = NB_PROFESSEURS - 1
+            WHERE  SPECIALITE  = :OLD.SPECIALITE;
+    ELSIF (updating)  THEN  
+        UPDATE PROF_SPECIALITE SET NB_PROFESSEURS = NB_PROFESSEURS - 1
+              WHERE  SPECIALITE  = :OLD.SPECIALITE; 
+        UPDATE PROF_SPECIALITE SET NB_PROFESSEURS = NB_PROFESSEURS + 1
+              WHERE  SPECIALITE  = :NEW.SPECIALITE;
+    END IF;
+END;
+/
+
+
+
+select *
+from  prof_specialite;
+
+
+
+create or replace trigger maj_cascade
+    before delete or update of num_prof on professeurs
+
+    for each row
+    begin
+        if updating then
+            update charge 
+            set    num_prof = :new.num_prof
+            where  num_prof = :old.num_prof;
+        elsif deleting then
+            delete from charge
+            where  num_prof = :old.num_prof;
+        end if;
+    end;
+/
+
+
+select * from charge; /* load table */
+
+update professeurs
+set num_prof = 80
+where rowid = ( select rowid
+        from  professeurs 
+        where  num_prof = 8
+          );
+
+select * from charge;
+
+
+create table audit_resultats
+(
+    utilisateur    varchar2(50),
+    date_maj    date,
+    desc_maj    varchar2(20),
+    num_eleve    number(4)    not null,
+    num_cours    number(4)    not null,
+    points        number
+);
+
+
+
+
+create or replace trigger trg_audit_resultats
+    before insert or delete or update on resultats
+    for each row
+    begin
+        if inserting then
+            insert into audit_resultats
+            values (user, sysdate, 'insert', :new.num_eleve,
+                :new.num_cours, :new.points);
+        elsif deleting then
+            insert into audit_resultats
+            values (user, sysdate, 'delete', :old.num_eleve,
+                :old.num_cours, :old.points);    
+        elsif updating then
+            insert into audit_resultats
+            values (user, sysdate, 'nouveau', :new.num_eleve,
+                :new.num_cours, :new.points);
+        insert into audit_resultats
+        values (user, sysdate, 'ancien', :old.num_eleve,
+            :old.num_cours, :old.points);
+        end if;
+    end;
+/
+
+
+
+
+create trigger modif_salaire
+    after update of salaire_actuel on professeurs
+    for each row
+    declare
+        modif_interdite exception;
+    begin
+        if user <> 'GrandChef' 
+          and :new.salaire_actuel > :old.salaire_actuel * 1.20 then
+            raise modif_interdite;
+        end if;
+        exception
+        when modif_interdite then
+            raise_application_error(-20002, 'Modification interdite');
+    end;
+/
+
+
+
+update professeurs
+set salaire_actuel = 2500000
+where num_prof = 9;
+
+
+
+
+create or replace package pck_ecole as
+    procedure pr_resultat;
+    function  fn_moyenne(p_num_eleve in number) return number;
+end pck_ecole;
+/
+
+ 
+set serveroutput on  
+
+create or replace package body pck_ecole is
+
+    procedure pr_resultat is
+        moy     number;
+        mention varchar2(10);
+        
+        begin
+            DBMS_OUTPUT.Put_Line ('PRENOM              NOM
+                          MOYENNE              MENTION');
+            for e1 in (select * from eleves) loop
+                moy := fn_moyenne (e1.num_eleve);
+                if moy >= 16 then
+                    mention := 'Tres Bien';
+                    else if moy >= 14 then
+                        mention := 'Bien';
+                        else if moy >= 12 then
+                            mention := 'Assez Bien';
+                            else if moy >= 10 then
+                                mention := 'Passable';
+                                else mention := 'Echec';
+                            end if;
+                        end if;
+                    end if;
+                end if;
+                DBMS_OUTPUT.Put_Line(e1.prenom    ||'                '||
+                            e1.nom||'              '||
+                            TO_CHAR(moy) ||'              '||
+                            mention);
+            end loop;
+        end;
+
+
+    function fn_moyenne (p_num_eleve in number) return number as
+        moyenne number;
+
+        begin
+            select avg(points) into moyenne
+            from  eleves, resultats
+            where  eleves.num_eleve = resultats.num_eleve
+            and    eleves.num_eleve = p_num_eleve;
+            return(moyenne);
+        end;
+    
+
+end pck_ecole;
+/
