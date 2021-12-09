@@ -1,30 +1,14 @@
 
 
-alter table resultats 
-      add constraint ck_resultats_points check (points between 0 and 20);
+ALTER TABLE resultats add constraint ck_resultats_points check (points between 0 and 20);
 
+ALTER TABLE eleves ADD (SEXE varchar2(1));
 
-ALTER TABLE ELEVES
-ADD (
-    SEXE    varchar2(1)
-);
+ALTER TABLE eleves add constraint ck_sexe check (sexe in('m', 'M', 'f', 'F', Null));
 
-alter table  eleves
-      add constraint ck_sexe check ( sexe in('m', 'M', 'f', 'F', Null));
+ALTER TABLE professeurs add constraint ck_niveau_salaire check (salaire_base <= salaire_actuel);
 
-
-
-alter table professeurs
-      add constraint ck_niveau_salaire check (salaire_base <= salaire_actuel);
-
-
-
-
-alter table professeurs
-      add constraint ck_dep_moy check(
-      salaire_actuel < 2* ( select  avg (salaire_actuel) as moy
-                from    professeurs
-                group by specialite;
+ALTER TABLE professeurs add constraint ck_dep_moy check(salaire_actuel < 2* ( select  avg (salaire_actuel) as moy FROM professeurs group by specialite;
 
                 
 create or replace trigger dep_moy_prof
@@ -39,7 +23,7 @@ create or replace trigger dep_moy_prof
         moysalaire integer;
     
     begin
-     select 2*avg(salaire_actuel) into moysalaire from professeurs where specialite = :new.specialite ;
+     select 2*avg(salaire_actuel) into moysalaire FROM professeurs where specialite = :new.specialite ;
         if (:new.salaire_actuel > moysalaire ) then
             raise salaire_moy;
         end if;
@@ -73,9 +57,9 @@ create or replace trigger maj_salaire_professeur
 
 
 
-drop table prof_specialite;
+drop TABLE prof_specialite;
 
-create table prof_specialite
+create TABLE prof_specialite
 (
     specialite    varchar2(20),
     nb_professeurs    number
@@ -104,8 +88,7 @@ END;
 
 
 
-select *
-from  prof_specialite;
+select * FROM  prof_specialite;
 
 
 
@@ -119,26 +102,26 @@ create or replace trigger maj_cascade
             set    num_prof = :new.num_prof
             where  num_prof = :old.num_prof;
         elsif deleting then
-            delete from charge
+            delete FROM charge
             where  num_prof = :old.num_prof;
         end if;
     end;
 /
 
 
-select * from charge; /* load table */
+select * FROM charge; /* load TABLE */
 
 update professeurs
 set num_prof = 80
 where rowid = ( select rowid
-        from  professeurs 
+        FROM  professeurs 
         where  num_prof = 8
           );
 
-select * from charge;
+select * FROM charge;
 
 
-create table audit_resultats
+create TABLE audit_resultats
 (
     utilisateur    varchar2(50),
     date_maj    date,
@@ -157,19 +140,15 @@ create or replace trigger trg_audit_resultats
     begin
         if inserting then
             insert into audit_resultats
-            values (user, sysdate, 'insert', :new.num_eleve,
-                :new.num_cours, :new.points);
+            values (user, sysdate, 'insert', :new.num_eleve, :new.num_cours, :new.points);
         elsif deleting then
             insert into audit_resultats
-            values (user, sysdate, 'delete', :old.num_eleve,
-                :old.num_cours, :old.points);    
+            values (user, sysdate, 'delete', :old.num_eleve, :old.num_cours, :old.points);    
         elsif updating then
             insert into audit_resultats
-            values (user, sysdate, 'nouveau', :new.num_eleve,
-                :new.num_cours, :new.points);
+            values (user, sysdate, 'nouveau', :new.num_eleve, :new.num_cours, :new.points);
         insert into audit_resultats
-        values (user, sysdate, 'ancien', :old.num_eleve,
-            :old.num_cours, :old.points);
+        values (user, sysdate, 'ancien', :old.num_eleve, :old.num_cours, :old.points);
         end if;
     end;
 /
@@ -187,7 +166,7 @@ create trigger modif_salaire
           and :new.salaire_actuel > :old.salaire_actuel * 1.20 then
             raise modif_interdite;
         end if;
-        exception
+            exception
         when modif_interdite then
             raise_application_error(-20002, 'Modification interdite');
     end;
@@ -195,9 +174,7 @@ create trigger modif_salaire
 
 
 
-update professeurs
-set salaire_actuel = 2500000
-where num_prof = 9;
+update professeurs set salaire_actuel = 2500000 where num_prof = 9;
 
 
 
@@ -220,7 +197,7 @@ create or replace package body pck_ecole is
         begin
             DBMS_OUTPUT.Put_Line ('PRENOM              NOM
                           MOYENNE              MENTION');
-            for e1 in (select * from eleves) loop
+            for e1 in (select * FROM eleves) loop
                 moy := fn_moyenne (e1.num_eleve);
                 if moy >= 16 then
                     mention := 'Tres Bien';
@@ -248,7 +225,7 @@ create or replace package body pck_ecole is
 
         begin
             select avg(points) into moyenne
-            from  eleves, resultats
+            FROM  eleves, resultats
             where  eleves.num_eleve = resultats.num_eleve
             and    eleves.num_eleve = p_num_eleve;
             return(moyenne);
